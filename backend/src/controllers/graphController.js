@@ -1,4 +1,4 @@
-const { buildDependencyGraph, getGraphStats } = require("../services/graph");
+const { buildDependencyGraph, getGraphStats: computeStats } = require("../services/graph");
 
 let cachedGraph = null;
 let cacheTimestamp = null;
@@ -14,7 +14,7 @@ const getGraph = async (req, res, next) => {
 
     res.json({
       graph: cachedGraph,
-      stats: getGraphStats(cachedGraph),
+      stats: computeStats(cachedGraph),
       cached: cacheTimestamp === now,
     });
   } catch (error) {
@@ -30,7 +30,7 @@ const getGraphStats = async (req, res, next) => {
       cacheTimestamp = now;
     }
 
-    res.json(getGraphStats(cachedGraph));
+    res.json(computeStats(cachedGraph));
   } catch (error) {
     next(error);
   }
@@ -72,4 +72,4 @@ const getNodeDetails = async (req, res, next) => {
   }
 };
 
-module.exports = { getGraph, getGraphStats: getGraphStats, getNodeDetails };
+module.exports = { getGraph, getGraphStats, getNodeDetails };
