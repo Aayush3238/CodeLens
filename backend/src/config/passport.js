@@ -9,13 +9,15 @@ if (process.env.GOOGLE_CLIENT_ID) {
       {
         clientID: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: process.env.GOOGLE_CALLBACK_URL || "/api/auth/google/callback",
-        scope: ["profile", "email"],
+        callbackURL: process.env.GOOGLE_CALLBACK_URL || "/api/auth/google/callback", // where google should redirect after the user aproval 
+        scope: ["profile", "email"],  //the data that we want from google
       },
+      //after user is approved this function will be called
+      //accessToken -> can use to call google api's
       async (accessToken, refreshToken, profile, done) => {
         try {
-          const email = profile.emails?.[0]?.value;
-          if (!email) return done(new Error("No email from Google"), null);
+          const email = profile.emails?.[0]?.value; //  top choose the primary email of the user 
+          if (!email) return done(new Error("No email from Google"), null); //if there is no email
 
           let user = await prisma.user.findFirst({
             where: {
@@ -26,7 +28,7 @@ if (process.env.GOOGLE_CLIENT_ID) {
             },
           });
 
-          if (user) {
+          if (user) { // user exist 
             user = await prisma.user.update({
               where: { id: user.id },
               data: {
@@ -46,7 +48,7 @@ if (process.env.GOOGLE_CLIENT_ID) {
             });
           }
 
-          return done(null, user);
+          return done(null, user); // everything was good no errors came
         } catch (error) {
           return done(error, null);
         }
@@ -110,10 +112,13 @@ if (process.env.GITHUB_CLIENT_ID) {
 }
 
 passport.serializeUser((user, done) => done(null, user.id));
+//after login store only the user.id in session 
+//deserialize needed because we need to get the user from the  database
 passport.deserializeUser(async (id, done) => {
   try {
     const user = await prisma.user.findUnique({ where: { id } });
     done(null, user);
+    //on each req, fetching full user form db using the id
   } catch (error) {
     done(error, null);
   }

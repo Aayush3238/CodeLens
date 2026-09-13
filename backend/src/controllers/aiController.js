@@ -2,9 +2,9 @@ const aiService = require("../services/ai");
 const prisma = require("../config/db");
 
 const getConversations = async (req, res, next) => {
-  try {
+  try {//to get the user's conversations
     const conversations = await prisma.conversation.findMany({
-      where: { userId: req.user.id },
+      where: { userId: req.user.id }, 
       include: { messages: { orderBy: { createdAt: "asc" } } },
       orderBy: { updatedAt: "desc" },
     });

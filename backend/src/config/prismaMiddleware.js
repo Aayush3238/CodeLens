@@ -1,11 +1,13 @@
+//to encrypot and decrypt user data 
 const { encrypt, decrypt } = require("../utils/encryption");
-
+// the fields that we want to encrypt
 const ENCRYPTED_FIELDS = {
   User: ["githubToken", "leetcodeSession"],
 };
 
-function createEncryptionMiddleware() {
-  return async (params, next) => {
+
+function createEncryptionMiddleware() { //outer function that creates the middleware
+  return async (params, next) => { // actual middleware
     const { model, action, args } = params;
 
     if (!model || !ENCRYPTED_FIELDS[model]) {
