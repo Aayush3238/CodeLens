@@ -1,6 +1,6 @@
 import json
 from typing import Literal
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import StateGraph, END
 
@@ -18,10 +18,10 @@ from config import get_settings
 
 settings = get_settings()
 
-llm = ChatOpenAI(
-    model=settings.OPENAI_MODEL,
+llm = ChatGoogleGenerativeAI(
+    model=settings.GEMINI_MODEL,
+    google_api_key=settings.GEMINI_API_KEY,
     temperature=0.7,
-    api_key=settings.OPENAI_API_KEY,
 )
 
 

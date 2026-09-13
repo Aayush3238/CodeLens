@@ -5,8 +5,8 @@ from functools import lru_cache
 class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/leetcoach_ai"
     REDIS_URL: str = "redis://localhost:6379"
-    OPENAI_API_KEY: str = ""
-    OPENAI_MODEL: str = "gpt-4"
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-pro"
     AGENT_SECRET: str = "dev-secret"
     AGENT_PORT: int = 8001
 

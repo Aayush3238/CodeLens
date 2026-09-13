@@ -51,3 +51,72 @@ class LearningPathState(TypedDict):
     plan: list[RevisionDay]
     recommendations: list[dict]
     error: Optional[str]
+
+
+class CodeReviewState(TypedDict):
+    user_id: str
+    code: str
+    language: str
+    problem_slug: str
+    problem: Optional[dict]
+    user_history: list[dict]
+    similar_solved: list[dict]
+    previous_submissions: Optional[str]
+    review: Optional[dict]
+    error: Optional[str]
+
+
+class StudySessionState(TypedDict):
+    user_id: str
+    conversation_id: str
+    user_message: str
+    user_profile: Optional[dict]
+    current_problem: Optional[dict]
+    weak_topics: list[dict]
+    conversation_history: list[dict]
+    ai_response: str
+    hints: list[str]
+    quiz_questions: list[dict]
+    error: Optional[str]
+
+
+class DataInsightState(TypedDict):
+    user_id: str
+    insight_type: str
+    user_profile: Optional[dict]
+    submission_stats: dict
+    topic_stats: dict
+    daily_activity: list[dict]
+    streak_data: dict
+    insights: list[dict]
+    anomalies: list[dict]
+    recommendations: list[dict]
+    error: Optional[str]
+
+
+class ProgressTrackerState(TypedDict):
+    user_id: str
+    user_profile: Optional[dict]
+    solved_problems: list[dict]
+    topic_strength: dict[str, float]
+    weekly_progress: dict
+    monthly_progress: dict
+    mastery_levels: dict[str, str]
+    report: Optional[dict]
+    notifications: list[dict]
+    error: Optional[str]
+
+
+class ImprovementPlanState(TypedDict):
+    user_id: str
+    target_role: Optional[str]
+    user_profile: Optional[dict]
+    leetcode_stats: dict
+    topic_analysis: dict
+    difficulty_analysis: dict
+    comparison_with_target: dict
+    gaps_identified: list[dict]
+    improvement_plan: Optional[dict]
+    daily_targets: list[dict]
+    weekly_milestones: list[dict]
+    error: Optional[str]

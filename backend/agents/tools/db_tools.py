@@ -150,6 +150,115 @@ async def get_topic_problem_counts() -> dict:
     return {r["topic"]: r["count"] for r in rows}
 
 
+async def get_weekly_progress(user_id: str) -> dict:
+    pool = await get_pool()
+    rows = await pool.fetch(
+        """
+        SELECT
+            DATE_TRUNC('week', up.solved_at) as week,
+            COUNT(*) as solved_count
+        FROM user_problems up
+        WHERE up.user_id = $1
+          AND up.solved_at > NOW() - INTERVAL '12 weeks'
+        GROUP BY week
+        ORDER BY week
+        """,
+        user_id,
+    )
+    return {str(r["week"].date()): r["solved_count"] for r in rows}
+
+
+async def get_monthly_progress(user_id: str) -> dict:
+    pool = await get_pool()
+    rows = await pool.fetch(
+        """
+        SELECT
+            DATE_TRUNC('month', up.solved_at) as month,
+            COUNT(*) as solved_count
+        FROM user_problems up
+        WHERE up.user_id = $1
+          AND up.solved_at > NOW() - INTERVAL '6 months'
+        GROUP BY month
+        ORDER BY month
+        """,
+        user_id,
+    )
+    return {str(r["month"].date()): r["solved_count"] for r in rows}
+
+
+async def get_difficulty_distribution(user_id: str) -> dict:
+    pool = await get_pool()
+    rows = await pool.fetch(
+        """
+        SELECT p.difficulty, COUNT(*) as count
+        FROM user_problems up
+        JOIN problems p ON up.problem_id = p.id
+        WHERE up.user_id = $1
+        GROUP BY p.difficulty
+        """,
+        user_id,
+    )
+    return {r["difficulty"]: r["count"] for r in rows}
+
+
+async def get_total_solved(user_id: str) -> int:
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        "SELECT COUNT(*) as count FROM user_problems WHERE user_id = $1",
+        user_id,
+    )
+    return row["count"] if row else 0
+
+
+async def get_active_days(user_id: str) -> int:
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        """
+        SELECT COUNT(DISTINCT DATE(solved_at)) as count
+        FROM user_problems
+        WHERE user_id = $1
+        """,
+        user_id,
+    )
+    return row["count"] if row else 0
+
+
+async def get_daily_activity(user_id: str, days: int = 30) -> list[dict]:
+    pool = await get_pool()
+    rows = await pool.fetch(
+        """
+        SELECT
+            DATE(solved_at) as date,
+            COUNT(*) as problems_solved,
+            ARRAY_AGG(p.difficulty) as difficulties
+        FROM user_problems up
+        JOIN problems p ON up.problem_id = p.id
+        WHERE up.user_id = $1
+          AND up.solved_at > NOW() - INTERVAL '1 day' * $2
+        GROUP BY DATE(solved_at)
+        ORDER BY date
+        """,
+        user_id,
+        days,
+    )
+    return [dict(r) for r in rows]
+
+
+async def get_user_stats(user_id: str) -> dict:
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        """
+        SELECT
+            COUNT(*) as total_solved,
+            COUNT(DISTINCT DATE(up.solved_at)) as active_days
+        FROM user_problems up
+        WHERE up.user_id = $1
+        """,
+        user_id,
+    )
+    return dict(row) if row else {"total_solved": 0, "active_days": 0}
+
+
 async def create_revision_plan(user_id: str, plan_type: str, items: list[dict]) -> dict:
     pool = await get_pool()
     async with pool.acquire() as conn:
