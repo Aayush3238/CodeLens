@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
+import { api } from '../services/api'
 import toast from 'react-hot-toast'
 
 export default function OAuthCallback() {
@@ -9,8 +10,6 @@ export default function OAuthCallback() {
   const { setAuth } = useAuthStore()
 
   useEffect(() => {
-    const token = searchParams.get('token')
-    const refreshToken = searchParams.get('refreshToken')
     const error = searchParams.get('error')
 
     if (error) {
@@ -19,13 +18,23 @@ export default function OAuthCallback() {
       return
     }
 
-    if (token) {
-      setAuth(null, token, refreshToken)
-      window.location.href = '/dashboard'
-    } else {
-      toast.error('No token received')
-      navigate('/login')
+    const exchangeTokens = async () => {
+      try {
+        const { data } = await api.get('/api/auth/oauth-exchange')
+        if (data.token) {
+          setAuth(null, data.token, data.refreshToken)
+          window.location.href = '/dashboard'
+        } else {
+          toast.error('No token received')
+          navigate('/login')
+        }
+      } catch {
+        toast.error('Authentication failed. Please try again.')
+        navigate('/login')
+      }
     }
+
+    exchangeTokens()
   }, [searchParams, navigate, setAuth])
 
   return (

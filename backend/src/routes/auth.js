@@ -2,7 +2,7 @@ const express = require("express");
 const passport = require("passport");
 const multer = require("multer");
 const path = require("path");
-const { signup, login, setPassword, googleCallback, githubCallback, getProfile, updateProfile, uploadAvatar, deleteAccount, forgotPassword, resetPassword, verifyEmail, resendVerification } = require("../controllers/authController");
+const { signup, login, setPassword, googleCallback, githubCallback, oauthExchange, getProfile, updateProfile, uploadAvatar, deleteAccount, forgotPassword, resetPassword, verifyEmail, resendVerification } = require("../controllers/authController");
 const { authenticate, generateAccessToken, generateRefreshToken, refreshAccessToken, revokeRefreshToken } = require("../middleware/auth");
 const { authLimiter, resetLimiter } = require("../middleware/rateLimiter");
 
@@ -263,6 +263,21 @@ router.get(
   passport.authenticate("github", { failureRedirect: "/login?error=auth_failed", session: false }),
   githubCallback
 );
+
+/**
+ * @swagger
+ * /api/auth/oauth-exchange:
+ *   get:
+ *     tags: [Auth]
+ *     summary: Exchange OAuth cookies for tokens
+ *     description: After OAuth redirect, exchange httpOnly cookies for accessible tokens
+ *     responses:
+ *       200:
+ *         description: Token pair
+ *       401:
+ *         description: No OAuth session
+ */
+router.get("/oauth-exchange", oauthExchange);
 
 /**
  * @swagger

@@ -164,7 +164,21 @@ const googleCallback = async (req, res) => {
     const token = generateToken(req.user.id);
     const refreshToken = await generateRefreshToken(req.user.id);
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
-    res.redirect(`${frontendUrl}/oauth/callback?token=${token}&refreshToken=${refreshToken}`);
+
+    res.cookie("oauth_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 15 * 60 * 1000,
+    });
+    res.cookie("oauth_refresh", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
+    res.redirect(`${frontendUrl}/oauth/callback`);
   } catch (error) {
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     res.redirect(`${frontendUrl}/login?error=auth_failed`);
@@ -176,10 +190,42 @@ const githubCallback = async (req, res) => {
     const token = generateToken(req.user.id);
     const refreshToken = await generateRefreshToken(req.user.id);
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
-    res.redirect(`${frontendUrl}/oauth/callback?token=${token}&refreshToken=${refreshToken}`);
+
+    res.cookie("oauth_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 15 * 60 * 1000,
+    });
+    res.cookie("oauth_refresh", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
+    res.redirect(`${frontendUrl}/oauth/callback`);
   } catch (error) {
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     res.redirect(`${frontendUrl}/login?error=auth_failed`);
+  }
+};
+
+const oauthExchange = async (req, res) => {
+  try {
+    const token = req.cookies?.oauth_token;
+    const refreshToken = req.cookies?.oauth_refresh;
+
+    if (!token || !refreshToken) {
+      return res.status(401).json({ message: "No OAuth session found" });
+    }
+
+    res.clearCookie("oauth_token");
+    res.clearCookie("oauth_refresh");
+
+    res.json({ token, refreshToken });
+  } catch (error) {
+    res.status(500).json({ message: "OAuth exchange failed" });
   }
 };
 
@@ -369,4 +415,4 @@ const resendVerification = async (req, res, next) => {
   }
 };
 
-module.exports = { signup, login, setPassword, googleCallback, githubCallback, getProfile, updateProfile, uploadAvatar, deleteAccount, forgotPassword, resetPassword, verifyEmail, resendVerification };
+module.exports = { signup, login, setPassword, googleCallback, githubCallback, oauthExchange, getProfile, updateProfile, uploadAvatar, deleteAccount, forgotPassword, resetPassword, verifyEmail, resendVerification };
