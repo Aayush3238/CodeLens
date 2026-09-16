@@ -58,8 +58,12 @@ app.use(morgan("combined", { stream: { write: (msg) => logger.info(msg.trim()) }
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 
+if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
+  throw new Error("SESSION_SECRET must be set in production");
+}
+
 const sessionConfig = {
-  secret: process.env.SESSION_SECRET || process.env.JWT_SECRET || "dev-session-secret",
+  secret: process.env.SESSION_SECRET || "dev-session-secret",
   resave: false,
   saveUninitialized: false,
   cookie: {

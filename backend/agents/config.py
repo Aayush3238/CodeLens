@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+import os
 
 
 class Settings(BaseSettings):
@@ -9,6 +10,7 @@ class Settings(BaseSettings):
     GEMINI_MODEL: str = "gemini-pro"
     AGENT_SECRET: str = "dev-secret"
     AGENT_PORT: int = 8001
+    ENVIRONMENT: str = "development"
 
     class Config:
         env_file = ".env"
@@ -17,4 +19,10 @@ class Settings(BaseSettings):
 
 @lru_cache()
 def get_settings() -> Settings:
-    return Settings()
+    settings = Settings()
+    if settings.ENVIRONMENT == "production":
+        if settings.AGENT_SECRET == "dev-secret":
+            raise ValueError("AGENT_SECRET must be set in production")
+        if not settings.GEMINI_API_KEY:
+            raise ValueError("GEMINI_API_KEY must be set in production")
+    return settings

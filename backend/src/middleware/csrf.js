@@ -1,5 +1,9 @@
 const crypto = require("crypto");
 
+if (process.env.NODE_ENV === "production" && !process.env.CSRF_SECRET) {
+  throw new Error("CSRF_SECRET must be set in production");
+}
+
 const CSRF_SECRET = process.env.CSRF_SECRET || crypto.randomBytes(32).toString("hex");
 
 function generateCsrfToken() {
