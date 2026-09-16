@@ -119,6 +119,15 @@ async def get_all_problems(topic: str = None, difficulty: str = None) -> list[di
     return [dict(r) for r in rows]
 
 
+async def get_problem_by_slug(slug: str) -> dict:
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        "SELECT id, title, title_slug, difficulty, topic, acceptance FROM problems WHERE title_slug = $1",
+        slug,
+    )
+    return dict(row) if row else None
+
+
 async def get_unsolved_problems(user_id: str, topic: str = None) -> list[dict]:
     pool = await get_pool()
     query = """
