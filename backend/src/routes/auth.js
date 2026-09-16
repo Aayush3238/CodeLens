@@ -4,7 +4,7 @@ const multer = require("multer");
 const path = require("path");
 const { signup, login, setPassword, googleCallback, githubCallback, getProfile, updateProfile, uploadAvatar, deleteAccount, forgotPassword, resetPassword, verifyEmail, resendVerification } = require("../controllers/authController");
 const { authenticate, generateAccessToken, generateRefreshToken, refreshAccessToken, revokeRefreshToken } = require("../middleware/auth");
-const { authLimiter } = require("../middleware/rateLimiter");
+const { authLimiter, resetLimiter } = require("../middleware/rateLimiter");
 
 const router = express.Router();
 
@@ -131,7 +131,7 @@ router.post("/set-password", authenticate, setPassword);
  *       200:
  *         description: Reset link sent if account exists
  */
-router.post("/forgot-password", authLimiter, forgotPassword);
+router.post("/forgot-password", resetLimiter, forgotPassword);
 
 /**
  * @swagger
@@ -158,7 +158,7 @@ router.post("/forgot-password", authLimiter, forgotPassword);
  *       400:
  *         description: Invalid or expired token
  */
-router.post("/reset-password", authLimiter, resetPassword);
+router.post("/reset-password", resetLimiter, resetPassword);
 
 /**
  * @swagger
