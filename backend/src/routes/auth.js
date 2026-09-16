@@ -2,7 +2,7 @@ const express = require("express");
 const passport = require("passport");
 const multer = require("multer");
 const path = require("path");
-const { signup, login, setPassword, googleCallback, githubCallback, getProfile, updateProfile, uploadAvatar, deleteAccount, forgotPassword, resetPassword } = require("../controllers/authController");
+const { signup, login, setPassword, googleCallback, githubCallback, getProfile, updateProfile, uploadAvatar, deleteAccount, forgotPassword, resetPassword, verifyEmail, resendVerification } = require("../controllers/authController");
 const { authenticate, generateAccessToken, generateRefreshToken, refreshAccessToken, revokeRefreshToken } = require("../middleware/auth");
 const { authLimiter } = require("../middleware/rateLimiter");
 
@@ -338,5 +338,52 @@ router.post("/avatar", authenticate, upload.single("avatar"), uploadAvatar);
  *         description: Account deleted
  */
 router.delete("/account", authenticate, deleteAccount);
+
+/**
+ * @swagger
+ * /api/auth/verify-email:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Verify email with token
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [token]
+ *             properties:
+ *               token:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Email verified
+ *       400:
+ *         description: Invalid or expired token
+ */
+router.post("/verify-email", verifyEmail);
+
+/**
+ * @swagger
+ * /api/auth/resend-verification:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Resend verification email
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: Verification link sent
+ */
+router.post("/resend-verification", authLimiter, resendVerification);
 
 module.exports = router;

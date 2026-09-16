@@ -6,6 +6,7 @@ const { generateToken, generateRefreshToken } = require("../middleware/auth");
 const { signupSchema, loginSchema, updateProfileSchema } = require("../validators/auth");
 const { logAudit } = require("../utils/audit");
 const { hashToken } = require("../utils/encryption");
+const { sendVerificationEmail } = require("../services/email");
 const logger = require("../utils/logger");
 
 const MAX_FAILED_ATTEMPTS = 5;
@@ -39,9 +40,19 @@ const signup = async (req, res, next) => {
     const hashedPassword = await bcrypt.hash(data.password, 12);
 
     const user = await prisma.user.create({
-      data: { ...data, password: hashedPassword },
+      data: { ...data, password: hashedPassword, emailVerified: false },
       select: userSelect,
     });
+
+    const verifyToken = crypto.randomBytes(32).toString("hex");
+    const tokenHash = hashToken(verifyToken);
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await prisma.emailVerificationToken.create({
+      data: { userId: user.id, token: tokenHash, expiresAt },
+    });
+
+    await sendVerificationEmail(user.email, verifyToken);
 
     const token = generateToken(user.id);
     const refreshToken = await generateRefreshToken(user.id);
@@ -294,4 +305,68 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
-module.exports = { signup, login, setPassword, googleCallback, githubCallback, getProfile, updateProfile, uploadAvatar, deleteAccount, forgotPassword, resetPassword };
+const verifyEmail = async (req, res, next) => {
+  try {
+    const { token } = req.body;
+    if (!token || typeof token !== "string") {
+      return res.status(400).json({ message: "Token is required" });
+    }
+
+    const tokenHash = hashToken(token);
+    const verificationToken = await prisma.emailVerificationToken.findUnique({
+      where: { token: tokenHash },
+    });
+
+    if (!verificationToken || verificationToken.used || verificationToken.expiresAt < new Date()) {
+      return res.status(400).json({ message: "Invalid or expired verification token" });
+    }
+
+    await prisma.user.update({
+      where: { id: verificationToken.userId },
+      data: { emailVerified: true, emailVerifiedAt: new Date() },
+    });
+
+    await prisma.emailVerificationToken.update({
+      where: { id: verificationToken.id },
+      data: { used: true },
+    });
+
+    await logAudit(verificationToken.userId, "EMAIL_VERIFIED", "Email verified", req.ip);
+
+    res.json({ message: "Email verified successfully" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const resendVerification = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email || typeof email !== "string") {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user || user.emailVerified) {
+      return res.json({ message: "If an unverified account exists, a verification link has been sent." });
+    }
+
+    await prisma.emailVerificationToken.deleteMany({ where: { userId: user.id, used: false } });
+
+    const verifyToken = crypto.randomBytes(32).toString("hex");
+    const tokenHash = hashToken(verifyToken);
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await prisma.emailVerificationToken.create({
+      data: { userId: user.id, token: tokenHash, expiresAt },
+    });
+
+    await sendVerificationEmail(user.email, verifyToken);
+
+    res.json({ message: "If an unverified account exists, a verification link has been sent." });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { signup, login, setPassword, googleCallback, githubCallback, getProfile, updateProfile, uploadAvatar, deleteAccount, forgotPassword, resetPassword, verifyEmail, resendVerification };
