@@ -324,27 +324,56 @@ function ConnectionsTab() {
 }
 
 function ApiKeysTab() {
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('openai_api_key') || '')
+  const [apiKey, setApiKey] = useState('')
+  const [hasKey, setHasKey] = useState(false)
 
-  const onSaveApiKey = () => {
-    localStorage.setItem('openai_api_key', apiKey)
-    toast.success('API key saved locally')
+  useEffect(() => {
+    api.get('/api/auth/api-key').then(({ data }) => setHasKey(data.hasKey)).catch(() => {})
+  }, [])
+
+  const onSaveApiKey = async () => {
+    if (!apiKey) return
+    try {
+      await api.put('/api/auth/api-key', { apiKey })
+      setHasKey(true)
+      setApiKey('')
+      toast.success('API key saved securely')
+    } catch {
+      toast.error('Failed to save API key')
+    }
+  }
+
+  const onDeleteApiKey = async () => {
+    try {
+      await api.delete('/api/auth/api-key')
+      setHasKey(false)
+      toast.success('API key deleted')
+    } catch {
+      toast.error('Failed to delete API key')
+    }
   }
 
   return (
     <div className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-dark-300 text-gray-600 mb-2">OpenAI API Key</label>
-        <input
-          type="password"
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
-          className="input w-full"
-          placeholder="sk-..."
-        />
-        <p className="text-dark-500 text-gray-400 text-xs mt-1">Stored in your browser's localStorage. Used for AI coaching features.</p>
+        {hasKey ? (
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-green-400">API key is saved</span>
+            <Button variant="danger" onClick={onDeleteApiKey}>Remove</Button>
+          </div>
+        ) : (
+          <input
+            type="password"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            className="input w-full"
+            placeholder="sk-..."
+          />
+        )}
+        <p className="text-dark-500 text-gray-400 text-xs mt-1">Stored securely on the server (encrypted at rest). Used for AI coaching features.</p>
       </div>
-      <Button variant="secondary" onClick={onSaveApiKey}>Save API Key</Button>
+      {!hasKey && <Button variant="secondary" onClick={onSaveApiKey}>Save API Key</Button>}
     </div>
   )
 }

@@ -2,7 +2,7 @@
 const { encrypt, decrypt } = require("../utils/encryption");
 // the fields that we want to encrypt
 const ENCRYPTED_FIELDS = {
-  User: ["githubToken", "leetcodeSession"],
+  User: ["githubToken", "leetcodeSession", "openaiApiKey"],
 };
 
 

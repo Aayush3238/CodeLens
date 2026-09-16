@@ -211,6 +211,51 @@ const githubCallback = async (req, res) => {
   }
 };
 
+const getApiKey = async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { openaiApiKey: true },
+    });
+    res.json({ hasKey: !!user?.openaiApiKey });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to get API key status" });
+  }
+};
+
+const setApiKey = async (req, res) => {
+  try {
+    const { apiKey } = req.body;
+    if (!apiKey || typeof apiKey !== "string") {
+      return res.status(400).json({ message: "API key is required" });
+    }
+
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { openaiApiKey: apiKey },
+    });
+
+    await logAudit(req.user.id, "API_KEY_UPDATED", "OpenAI API key updated", req.ip);
+    res.json({ message: "API key saved securely" });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to save API key" });
+  }
+};
+
+const deleteApiKey = async (req, res) => {
+  try {
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { openaiApiKey: null },
+    });
+
+    await logAudit(req.user.id, "API_KEY_DELETED", "OpenAI API key deleted", req.ip);
+    res.json({ message: "API key deleted" });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to delete API key" });
+  }
+};
+
 const oauthExchange = async (req, res) => {
   try {
     const token = req.cookies?.oauth_token;
@@ -415,4 +460,4 @@ const resendVerification = async (req, res, next) => {
   }
 };
 
-module.exports = { signup, login, setPassword, googleCallback, githubCallback, oauthExchange, getProfile, updateProfile, uploadAvatar, deleteAccount, forgotPassword, resetPassword, verifyEmail, resendVerification };
+module.exports = { signup, login, setPassword, googleCallback, githubCallback, oauthExchange, getApiKey, setApiKey, deleteApiKey, getProfile, updateProfile, uploadAvatar, deleteAccount, forgotPassword, resetPassword, verifyEmail, resendVerification };

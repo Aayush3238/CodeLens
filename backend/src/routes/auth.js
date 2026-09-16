@@ -2,7 +2,7 @@ const express = require("express");
 const passport = require("passport");
 const multer = require("multer");
 const path = require("path");
-const { signup, login, setPassword, googleCallback, githubCallback, oauthExchange, getProfile, updateProfile, uploadAvatar, deleteAccount, forgotPassword, resetPassword, verifyEmail, resendVerification } = require("../controllers/authController");
+const { signup, login, setPassword, googleCallback, githubCallback, oauthExchange, getApiKey, setApiKey, deleteApiKey, getProfile, updateProfile, uploadAvatar, deleteAccount, forgotPassword, resetPassword, verifyEmail, resendVerification } = require("../controllers/authController");
 const { authenticate, generateAccessToken, generateRefreshToken, refreshAccessToken, revokeRefreshToken } = require("../middleware/auth");
 const { authLimiter, resetLimiter } = require("../middleware/rateLimiter");
 
@@ -400,5 +400,9 @@ router.post("/verify-email", verifyEmail);
  *         description: Verification link sent
  */
 router.post("/resend-verification", authLimiter, resendVerification);
+
+router.get("/api-key", authenticate, getApiKey);
+router.put("/api-key", authenticate, setApiKey);
+router.delete("/api-key", authenticate, deleteApiKey);
 
 module.exports = router;
