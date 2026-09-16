@@ -54,4 +54,8 @@ function decrypt(encryptedText) {
   }
 }
 
-module.exports = { encrypt, decrypt };
+function hashToken(token) {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+module.exports = { encrypt, decrypt, hashToken };

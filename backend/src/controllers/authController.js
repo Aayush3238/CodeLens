@@ -5,6 +5,7 @@ const prisma = require("../config/db");
 const { generateToken, generateRefreshToken } = require("../middleware/auth");
 const { signupSchema, loginSchema, updateProfileSchema } = require("../validators/auth");
 const { logAudit } = require("../utils/audit");
+const { hashToken } = require("../utils/encryption");
 const logger = require("../utils/logger");
 
 const MAX_FAILED_ATTEMPTS = 5;
@@ -241,10 +242,11 @@ const forgotPassword = async (req, res, next) => {
     await prisma.passwordResetToken.deleteMany({ where: { userId: user.id, used: false } });
 
     const resetToken = crypto.randomBytes(32).toString("hex");
+    const tokenHash = hashToken(resetToken);
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
     await prisma.passwordResetToken.create({
-      data: { userId: user.id, token: resetToken, expiresAt },
+      data: { userId: user.id, token: tokenHash, expiresAt },
     });
 
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
@@ -274,7 +276,8 @@ const resetPassword = async (req, res, next) => {
       return res.status(400).json({ message: "Password must be at least 6 characters" });
     }
 
-    const resetToken = await prisma.passwordResetToken.findUnique({ where: { token } });
+    const tokenHash = hashToken(token);
+    const resetToken = await prisma.passwordResetToken.findUnique({ where: { token: tokenHash } });
     if (!resetToken || resetToken.used || resetToken.expiresAt < new Date()) {
       return res.status(400).json({ message: "Invalid or expired reset token" });
     }
