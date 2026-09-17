@@ -3,7 +3,7 @@ const crypto = require("crypto");
 const path = require("path");
 const prisma = require("../config/db");
 const { generateToken, generateRefreshToken } = require("../middleware/auth");
-const { signupSchema, loginSchema, updateProfileSchema } = require("../validators/auth");
+const { signupSchema, loginSchema, updateProfileSchema, changePasswordSchema } = require("../validators/auth");
 const { logAudit } = require("../utils/audit");
 const { hashToken } = require("../utils/encryption");
 const { sendVerificationEmail } = require("../services/email");
@@ -154,6 +154,33 @@ const setPassword = async (req, res, next) => {
     await logAudit(req.user.id, "PASSWORD_SET", "Password set for OAuth account", req.ip);
 
     res.json({ message: "Password set successfully" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const changePassword = async (req, res, next) => {
+  try {
+    const data = changePasswordSchema.parse(req.body);
+
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!user || !user.password) {
+      return res.status(400).json({ message: "No password set. Use set-password instead." });
+    }
+
+    const valid = await bcrypt.compare(data.currentPassword, user.password);
+    if (!valid) {
+      return res.status(401).json({ message: "Current password is incorrect" });
+    }
+
+    const hashedPassword = await bcrypt.hash(data.newPassword, 12);
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { password: hashedPassword },
+    });
+
+    await logAudit(req.user.id, "PASSWORD_CHANGED", "Password changed", req.ip);
+    res.json({ message: "Password changed successfully" });
   } catch (error) {
     next(error);
   }
@@ -460,4 +487,4 @@ const resendVerification = async (req, res, next) => {
   }
 };
 
-module.exports = { signup, login, setPassword, googleCallback, githubCallback, oauthExchange, getApiKey, setApiKey, deleteApiKey, getProfile, updateProfile, uploadAvatar, deleteAccount, forgotPassword, resetPassword, verifyEmail, resendVerification };
+module.exports = { signup, login, setPassword, changePassword, googleCallback, githubCallback, oauthExchange, getApiKey, setApiKey, deleteApiKey, getProfile, updateProfile, uploadAvatar, deleteAccount, forgotPassword, resetPassword, verifyEmail, resendVerification };

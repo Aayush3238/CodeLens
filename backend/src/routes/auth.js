@@ -2,7 +2,7 @@ const express = require("express");
 const passport = require("passport");
 const multer = require("multer");
 const path = require("path");
-const { signup, login, setPassword, googleCallback, githubCallback, oauthExchange, getApiKey, setApiKey, deleteApiKey, getProfile, updateProfile, uploadAvatar, deleteAccount, forgotPassword, resetPassword, verifyEmail, resendVerification } = require("../controllers/authController");
+const { signup, login, setPassword, changePassword, googleCallback, githubCallback, oauthExchange, getApiKey, setApiKey, deleteApiKey, getProfile, updateProfile, uploadAvatar, deleteAccount, forgotPassword, resetPassword, verifyEmail, resendVerification } = require("../controllers/authController");
 const { authenticate, generateAccessToken, generateRefreshToken, refreshAccessToken, revokeRefreshToken } = require("../middleware/auth");
 const { authLimiter, resetLimiter } = require("../middleware/rateLimiter");
 
@@ -109,6 +109,35 @@ router.post("/login", authLimiter, login);
  *         description: Password set successfully
  */
 router.post("/set-password", authenticate, setPassword);
+
+/**
+ * @swagger
+ * /api/auth/change-password:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Change password for existing users
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [currentPassword, newPassword]
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 6
+ *     responses:
+ *       200:
+ *         description: Password changed
+ *       401:
+ *         description: Current password incorrect
+ */
+router.post("/change-password", authenticate, changePassword);
 
 /**
  * @swagger
