@@ -143,6 +143,34 @@ const getRevisionPlans = async (req, res, next) => {
   }
 };
 
+const toggleRevisionItem = async (req, res, next) => {
+  try {
+    const { planId, itemId } = req.params;
+
+    const plan = await prisma.revisionPlan.findUnique({ where: { id: planId } });
+    if (!plan || plan.userId !== req.user.id) {
+      return res.status(404).json({ message: "Revision plan not found" });
+    }
+
+    const item = await prisma.revisionItem.findUnique({ where: { id: itemId } });
+    if (!item || item.revisionPlanId !== planId) {
+      return res.status(404).json({ message: "Revision item not found" });
+    }
+
+    const updated = await prisma.revisionItem.update({
+      where: { id: itemId },
+      data: {
+        completed: !item.completed,
+        completedAt: !item.completed ? new Date() : null,
+      },
+    });
+
+    res.json({ item: updated });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const explainCode = async (req, res, next) => {
   try {
     const { code, language, question } = req.body;
@@ -207,4 +235,5 @@ module.exports = {
   explainCode,
   deleteConversation,
   renameConversation,
+  toggleRevisionItem,
 };
