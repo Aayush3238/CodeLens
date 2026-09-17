@@ -82,11 +82,25 @@ async def generate_report(state: ProgressTrackerState) -> ProgressTrackerState:
         [f"- {p['title']} ({p['difficulty']})" for p in solved[:5]]
     ) or "No recent problems"
 
+    from datetime import date, timedelta
+    active_dates = sorted(set(p.get("solved_at", "")[:10] for p in solved if p.get("solved_at")), reverse=True)
+    streak = 0
+    today = date.today()
+    for d in active_dates:
+        try:
+            parsed = date.fromisoformat(d)
+            if parsed == today - timedelta(days=streak):
+                streak += 1
+            elif parsed < today - timedelta(days=streak):
+                break
+        except (ValueError, TypeError):
+            continue
+
     prompt = PROGRESS_TRACKER_PROMPT.format(
         name=profile.get("name", "Student"),
         total_solved=len(solved),
         active_days=len(set(p.get("solved_at", "")[:10] for p in solved)),
-        current_streak=0,
+        current_streak=streak,
         topic_strength=topic_str or "No data",
         weekly_progress=weekly_str or "No data",
         monthly_progress=monthly_str or "No data",

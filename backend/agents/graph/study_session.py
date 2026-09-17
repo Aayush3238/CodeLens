@@ -152,6 +152,8 @@ def create_study_session_graph() -> StateGraph:
     )
 
     workflow.add_edge("respond", END)
+    workflow.add_edge("hints", END)
+    workflow.add_edge("quiz", END)
 
     return workflow.compile()
 

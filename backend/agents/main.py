@@ -54,6 +54,8 @@ class StudySessionRequest(BaseModel):
     conversation_id: str
     user_message: str
     problem_slug: Optional[str] = None
+    current_problem: Optional[dict] = None
+    conversation_history: Optional[list[dict]] = None
 
 
 class DataInsightRequest(BaseModel):
@@ -137,11 +139,17 @@ async def study_session(
     _: str = Depends(verify_secret),
 ):
     try:
+        current_problem = request.current_problem
+        if not current_problem and request.problem_slug:
+            from tools.db_tools import get_problem_by_slug
+            current_problem = await get_problem_by_slug(request.problem_slug)
+
         result = await run_study_session_agent(
             user_id=request.user_id,
             conversation_id=request.conversation_id,
             user_message=request.user_message,
-            problem_slug=request.problem_slug,
+            current_problem=current_problem,
+            conversation_history=request.conversation_history,
         )
 
         if result.get("error"):

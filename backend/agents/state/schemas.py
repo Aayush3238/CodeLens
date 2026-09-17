@@ -74,6 +74,7 @@ class StudySessionState(TypedDict):
     current_problem: Optional[dict]
     weak_topics: list[dict]
     conversation_history: list[dict]
+    solved_count: int
     ai_response: str
     hints: list[str]
     quiz_questions: list[dict]
