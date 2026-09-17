@@ -153,6 +153,50 @@ const explainCode = async (req, res, next) => {
   }
 };
 
+const deleteConversation = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const conversation = await prisma.conversation.findUnique({ where: { id } });
+
+    if (!conversation || conversation.userId !== req.user.id) {
+      return res.status(404).json({ message: "Conversation not found" });
+    }
+
+    await prisma.message.deleteMany({ where: { conversationId: id } });
+    await prisma.conversation.delete({ where: { id } });
+
+    res.json({ message: "Conversation deleted" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const renameConversation = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { title } = req.body;
+
+    if (!title || typeof title !== "string" || title.trim().length === 0) {
+      return res.status(400).json({ message: "Title is required" });
+    }
+
+    const conversation = await prisma.conversation.findUnique({ where: { id } });
+
+    if (!conversation || conversation.userId !== req.user.id) {
+      return res.status(404).json({ message: "Conversation not found" });
+    }
+
+    const updated = await prisma.conversation.update({
+      where: { id },
+      data: { title: title.trim() },
+    });
+
+    res.json({ conversation: updated });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getConversations,
   createConversation,
@@ -161,4 +205,6 @@ module.exports = {
   generateRevisionPlan,
   getRevisionPlans,
   explainCode,
+  deleteConversation,
+  renameConversation,
 };

@@ -7,6 +7,8 @@ const {
   generateRevisionPlan,
   getRevisionPlans,
   explainCode,
+  deleteConversation,
+  renameConversation,
 } = require("../controllers/aiController");
 const { authenticate } = require("../middleware/auth");
 const validate = require("../middleware/validate");
@@ -26,5 +28,7 @@ router.post("/chat/stream", authenticate, validate(sendMessageSchema), chatStrea
 router.post("/revision-plan", authenticate, validate(generateRevisionPlanSchema), generateRevisionPlan);
 router.get("/revision-plans", authenticate, getRevisionPlans);
 router.post("/explain", authenticate, validate(explainCodeSchema), explainCode);
+router.delete("/conversations/:id", authenticate, deleteConversation);
+router.patch("/conversations/:id", authenticate, renameConversation);
 
 module.exports = router;
