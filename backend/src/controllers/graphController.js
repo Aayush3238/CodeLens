@@ -1,22 +1,9 @@
-const { buildDependencyGraph, getGraphStats: computeStats } = require("../services/graph");
-
-let cachedGraph = null;
-let cacheTimestamp = null;
-const CACHE_TTL = 5 * 60 * 1000;
+const { buildDependencyGraph, getGraphStats: computeStats, invalidateGraphCache } = require("../services/graph");
 
 const getGraph = async (req, res, next) => {
   try {
-    const now = Date.now();
-    if (!cachedGraph || !cacheTimestamp || now - cacheTimestamp > CACHE_TTL) {
-      cachedGraph = buildDependencyGraph();
-      cacheTimestamp = now;
-    }
-
-    res.json({
-      graph: cachedGraph,
-      stats: computeStats(cachedGraph),
-      cached: cacheTimestamp === now,
-    });
+    const graph = buildDependencyGraph();
+    res.json({ graph, stats: computeStats(graph) });
   } catch (error) {
     next(error);
   }
@@ -24,13 +11,18 @@ const getGraph = async (req, res, next) => {
 
 const getGraphStats = async (req, res, next) => {
   try {
-    const now = Date.now();
-    if (!cachedGraph || !cacheTimestamp || now - cacheTimestamp > CACHE_TTL) {
-      cachedGraph = buildDependencyGraph();
-      cacheTimestamp = now;
-    }
+    const graph = buildDependencyGraph();
+    res.json(computeStats(graph));
+  } catch (error) {
+    next(error);
+  }
+};
 
-    res.json(computeStats(cachedGraph));
+const refreshGraph = async (req, res, next) => {
+  try {
+    invalidateGraphCache();
+    const graph = buildDependencyGraph();
+    res.json({ graph, stats: computeStats(graph), refreshed: true });
   } catch (error) {
     next(error);
   }
@@ -39,20 +31,15 @@ const getGraphStats = async (req, res, next) => {
 const getNodeDetails = async (req, res, next) => {
   try {
     const { nodeId } = req.params;
-    const now = Date.now();
+    const graph = buildDependencyGraph();
 
-    if (!cachedGraph || !cacheTimestamp || now - cacheTimestamp > CACHE_TTL) {
-      cachedGraph = buildDependencyGraph();
-      cacheTimestamp = now;
-    }
-
-    const node = cachedGraph.nodes.find((n) => n.id === nodeId);
+    const node = graph.nodes.find((n) => n.id === nodeId);
     if (!node) {
       return res.status(404).json({ error: "Node not found" });
     }
 
-    const incomingEdges = cachedGraph.edges.filter((e) => e.target === nodeId);
-    const outgoingEdges = cachedGraph.edges.filter((e) => e.source === nodeId);
+    const incomingEdges = graph.edges.filter((e) => e.target === nodeId);
+    const outgoingEdges = graph.edges.filter((e) => e.source === nodeId);
 
     res.json({
       node,
@@ -72,4 +59,4 @@ const getNodeDetails = async (req, res, next) => {
   }
 };
 
-module.exports = { getGraph, getGraphStats, getNodeDetails };
+module.exports = { getGraph, getGraphStats, refreshGraph, getNodeDetails };

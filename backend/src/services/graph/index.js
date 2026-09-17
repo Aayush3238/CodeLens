@@ -1,6 +1,22 @@
 const fs = require("fs");
 const path = require("path");
 
+let graphCache = null;
+let graphCacheTimestamp = 0;
+const GRAPH_CACHE_TTL = 10 * 60 * 1000;
+
+function getCachedGraph() {
+  if (graphCache && Date.now() - graphCacheTimestamp < GRAPH_CACHE_TTL) {
+    return graphCache;
+  }
+  return null;
+}
+
+function invalidateGraphCache() {
+  graphCache = null;
+  graphCacheTimestamp = 0;
+}
+
 const BACKEND_ROOT = path.join(__dirname, "../../../..", "backend", "src");
 const FRONTEND_ROOT = path.join(__dirname, "../../../..", "frontend", "src");
 
@@ -130,6 +146,9 @@ function resolveImportPath(importPath, currentFile) {
 }
 
 function buildDependencyGraph() {
+  const cached = getCachedGraph();
+  if (cached) return cached;
+
   const nodes = [];
   const edges = [];
   const nodeMap = new Map();
@@ -238,7 +257,10 @@ function buildDependencyGraph() {
     }
   }
 
-  return { nodes, edges };
+  const result = { nodes, edges };
+  graphCache = result;
+  graphCacheTimestamp = Date.now();
+  return result;
 }
 
 function getGraphStats(graph) {
@@ -260,4 +282,4 @@ function getGraphStats(graph) {
   };
 }
 
-module.exports = { buildDependencyGraph, getGraphStats, NODE_TYPES, EDGE_TYPES };
+module.exports = { buildDependencyGraph, getGraphStats, invalidateGraphCache, NODE_TYPES, EDGE_TYPES };
