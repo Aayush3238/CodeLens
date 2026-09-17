@@ -40,9 +40,13 @@ async function runAutoSync() {
 
     logger.info(`[AutoSync] Found ${users.length} users to sync`);
 
-    for (const user of users) {
-      await syncUser(user);
-      await new Promise((r) => setTimeout(r, 2000));
+    const CONCURRENCY = 5;
+    for (let i = 0; i < users.length; i += CONCURRENCY) {
+      const batch = users.slice(i, i + CONCURRENCY);
+      await Promise.allSettled(batch.map((user) => syncUser(user)));
+      if (i + CONCURRENCY < users.length) {
+        await new Promise((r) => setTimeout(r, 2000));
+      }
     }
   } catch (error) {
     logger.error(`[AutoSync] Error: ${error.message}`);
