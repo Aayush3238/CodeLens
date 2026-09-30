@@ -87,6 +87,9 @@ services:
   - type: redis
     name: leetcoach-redis
     plan: free
+    ipAllowList:
+      - source: 0.0.0.0/0
+        description: allow all
 
 databases:
   - name: leetcoach-db
