@@ -90,6 +90,7 @@ databases:
     databaseName: leetcoach_ai
     ipAllowList: []
 
+redis:
   - name: leetcoach-redis
     plan: free
     ipAllowList: []
