@@ -93,4 +93,3 @@ databases:
 redis:
   - name: leetcoach-redis
     plan: free
-    ipAllowList: []
