@@ -84,12 +84,12 @@ services:
           type: redis
           property: connectionString
 
+  - type: redis
+    name: leetcoach-redis
+    plan: free
+
 databases:
   - name: leetcoach-db
     plan: free
     databaseName: leetcoach_ai
     ipAllowList: []
-
-redis:
-  - name: leetcoach-redis
-    plan: free
