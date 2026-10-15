@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '../stores/authStore'
-import { authAPI, leetcodeAPI, githubAPI, api } from '../services/api'
+import { authAPI, leetcodeAPI, githubAPI } from '../services/api'
+import api from '../services/api'
 import { Button } from '../components/ui'
 import {
   User, Key, Trash2, Moon, Sun, Link as LinkIcon, Unlink, RefreshCw,
@@ -225,7 +226,6 @@ function ConnectionsTab() {
         <div className="flex items-center gap-3 mb-4">
             <LinkIcon size={18} className="text-primary-400" />
           <h3 className="font-semibold">LeetCode</h3>
-        </div>
         </div>
         {lcConnected ? (
           <div className="space-y-3">
