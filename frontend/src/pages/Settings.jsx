@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '../stores/authStore'
-import { authAPI, leetcodeAPI, githubAPI } from '../services/api'
+import { authAPI, leetcodeAPI, githubAPI, api } from '../services/api'
 import { Button } from '../components/ui'
 import {
   User, Key, Trash2, Moon, Sun, Link as LinkIcon, Unlink, RefreshCw,
