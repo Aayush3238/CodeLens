@@ -75,7 +75,7 @@ async function graphqlQuery(query, variables = {}, sessionCookie = null) {
   throw lastError;
 }
 
-async function fetchUserProfile(username) {
+async function fetchUserProfile(username, sessionCookie = null) {
   const cacheKey = `lc:profile:${username}`;
   const cached = await getCached(cacheKey);
   if (cached) return cached;
@@ -100,7 +100,7 @@ async function fetchUserProfile(username) {
     }
   `;
 
-  const data = await graphqlQuery(query, { username });
+  const data = await graphqlQuery(query, { username }, sessionCookie);
   const result = data?.matchedUser;
   if (result) await setCache(cacheKey, result, 300);
   return result;
@@ -138,7 +138,7 @@ async function fetchUserSolvedProblems(username) {
   return data;
 }
 
-async function fetchRecentSubmissions(username, limit = 20) {
+async function fetchRecentSubmissions(username, limit = 20, sessionCookie = null) {
   const cacheKey = `lc:recent:${username}:${limit}`;
   const cached = await getCached(cacheKey);
   if (cached) return cached;
@@ -155,10 +155,41 @@ async function fetchRecentSubmissions(username, limit = 20) {
     }
   `;
 
-  const data = await graphqlQuery(query, { username, limit });
+  const data = await graphqlQuery(query, { username, limit }, sessionCookie);
   const result = data?.recentAcSubmissionList || [];
   if (result.length > 0) await setCache(cacheKey, result, 120);
   return result;
+}
+
+async function fetchAllSolvedWithSession(sessionCookie) {
+  const cacheKey = `lc:all-solved:${hashCookie(sessionCookie)}`;
+  const cached = await getCached(cacheKey);
+  if (cached) return cached;
+
+  const res = await fetch("https://leetcode.com/api/problems/all/", {
+    headers: {
+      "User-Agent": HEADERS["User-Agent"],
+      "Referer": "https://leetcode.com",
+      "Cookie": `LEETCODE_SESSION=${sessionCookie}`,
+    },
+  });
+  if (!res.ok) throw new Error(`LeetCode API error: ${res.status}`);
+  const json = await res.json();
+  const solved = (json.stat_status_pairs || [])
+    .filter((p) => p.status === "ac")
+    .map((p) => ({
+      titleSlug: p.stat.question__title_slug,
+      title: p.stat.question__title,
+      leetcodeId: p.stat.question__id,
+      difficulty: p.difficulty === 1 ? "Easy" : p.difficulty === 2 ? "Medium" : "Hard",
+      tags: (p.topic_tags || []),
+    }));
+  if (solved.length > 0) await setCache(cacheKey, solved, 600);
+  return solved;
+}
+
+function hashCookie(cookie) {
+  return require("crypto").createHash("sha1").update(cookie).digest("hex").slice(0, 16);
 }
 
 async function fetchProblemDetails(titleSlug) {
@@ -189,8 +220,8 @@ async function fetchProblemDetails(titleSlug) {
 }
 
 class LeetCodeService {
-  async getProfile(username) {
-    const user = await fetchUserProfile(username);
+  async getProfile(username, sessionCookie = null) {
+    const user = await fetchUserProfile(username, sessionCookie);
     if (!user) return null;
 
     const stats = user.submitStats?.acSubmissionNum || [];
@@ -226,60 +257,82 @@ class LeetCodeService {
     };
   }
 
-  async getRecentSubmissions(username, limit = 20) {
-    return fetchRecentSubmissions(username, limit);
+  async getRecentSubmissions(username, limit = 20, sessionCookie = null) {
+    return fetchRecentSubmissions(username, limit, sessionCookie);
   }
 
   async syncToDatabase(userId, username) {
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { leetcodeSession: true } });
     const sessionCookie = user?.leetcodeSession || null;
 
-    const profile = await this.getProfile(username);
+    const profile = await this.getProfile(username, sessionCookie);
     if (!profile) throw new Error("LeetCode user not found");
 
-    const recentSubs = await this.getRecentSubmissions(username, 50);
+    let solvedList = [];
+    let source = "recent";
+    if (sessionCookie) {
+      try {
+        solvedList = await fetchAllSolvedWithSession(sessionCookie);
+        source = "full";
+      } catch {
+        solvedList = [];
+      }
+    }
+    if (solvedList.length === 0) {
+      const recentSubs = await this.getRecentSubmissions(username, 50, sessionCookie);
+      solvedList = recentSubs.map((s) => ({ titleSlug: s.titleSlug, title: s.title, tags: [], difficulty: null, lang: s.lang, timestamp: s.timestamp, id: s.id }));
+    }
 
-    const syncedProblems = [];
-    for (const sub of recentSubs) {
+    let syncedCount = 0;
+    for (const item of solvedList) {
       let problem = await prisma.problem.findUnique({
-        where: { titleSlug: sub.titleSlug },
+        where: { titleSlug: item.titleSlug },
       });
 
       if (!problem) {
-        const details = await fetchProblemDetails(sub.titleSlug);
-        const tags = details?.topicTags?.map((t) => t.name) || [];
+        let tags = item.tags || [];
+        let difficulty = item.difficulty;
+        if (tags.length === 0 || !difficulty) {
+          try {
+            const details = await fetchProblemDetails(item.titleSlug);
+            tags = details?.topicTags?.map((t) => t.name) || tags;
+            difficulty = details?.difficulty || difficulty || "Medium";
+          } catch {}
+        }
         const topic = mapTagToTopic(tags);
 
-        problem = await prisma.problem.create({
-          data: {
-            leetcodeId: parseInt(details?.questionId || "0"),
-            title: sub.title,
-            titleSlug: sub.titleSlug,
-            difficulty: details?.difficulty || "Medium",
+        problem = await prisma.problem.upsert({
+          where: { titleSlug: item.titleSlug },
+          update: {},
+          create: {
+            leetcodeId: item.leetcodeId || parseInt(item.id || "0") || 0,
+            title: item.title,
+            titleSlug: item.titleSlug,
+            difficulty: difficulty || "Medium",
             topic,
             tags,
-            acceptance: details?.acRate || null,
           },
         });
       }
 
-      const subId = String(sub.id);
-      const existingSub = await prisma.submission.findUnique({
-        where: { leetcodeSubmissionId: subId },
-      });
-
-      if (!existingSub) {
-        await prisma.submission.create({
-          data: {
-            userId,
-            problemId: problem.id,
-            code: `leetcode-sync-${subId}`,
-            language: sub.lang || "unknown",
-            status: "Accepted",
-            leetcodeSubmissionId: subId,
-            submissionTime: new Date(parseInt(sub.timestamp) * 1000),
-          },
+      if (item.id) {
+        const subId = String(item.id);
+        const existingSub = await prisma.submission.findUnique({
+          where: { leetcodeSubmissionId: subId },
         });
+        if (!existingSub) {
+          await prisma.submission.create({
+            data: {
+              userId,
+              problemId: problem.id,
+              code: `leetcode-sync-${subId}`,
+              language: item.lang || "unknown",
+              status: "Accepted",
+              leetcodeSubmissionId: subId,
+              submissionTime: item.timestamp ? new Date(parseInt(item.timestamp) * 1000) : new Date(),
+            },
+          });
+        }
       }
 
       const existingUP = await prisma.userProblem.findUnique({
@@ -290,9 +343,8 @@ class LeetCodeService {
         await prisma.userProblem.create({
           data: { userId, problemId: problem.id },
         });
+        syncedCount++;
       }
-
-      syncedProblems.push(problem.titleSlug);
     }
 
     await prisma.user.update({
@@ -302,8 +354,10 @@ class LeetCodeService {
 
     return {
       profile,
-      syncedCount: syncedProblems.length,
-      problems: syncedProblems,
+      syncedCount,
+      source,
+      totalSolvedOnLeetcode: profile.totalSolved,
+      problems: solvedList.map((s) => s.titleSlug),
     };
   }
 }

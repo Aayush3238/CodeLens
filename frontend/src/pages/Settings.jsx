@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
+import { useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '../stores/authStore'
 import { authAPI, leetcodeAPI, githubAPI } from '../services/api'
@@ -116,6 +117,7 @@ function ProfileTab() {
 
 function ConnectionsTab() {
   const { user, updateUser } = useAuthStore()
+  const queryClient = useQueryClient()
   const [lcUsername, setLcUsername] = useState(user?.leetcodeUsername || '')
   const [lcConnected, setLcConnected] = useState(!!user?.leetcodeUsername)
   const [lcSyncing, setLcSyncing] = useState(false)
@@ -166,7 +168,16 @@ function ConnectionsTab() {
     setLcSyncing(true)
     try {
       const res = await leetcodeAPI.sync()
-      toast.success(`Synced ${res.data.syncedCount} problems`)
+      const { syncedCount, source, totalSolvedOnLeetcode } = res.data
+      const scope = source === 'full' ? 'full history' : 'recent activity'
+      toast.success(
+        syncedCount > 0
+          ? `Synced ${syncedCount} new problems (${scope})`
+          : `Already up to date — LeetCode shows ${totalSolvedOnLeetcode} solved in total`
+      )
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['weak-topics'] })
+      queryClient.invalidateQueries({ queryKey: ['difficulty-progress'] })
     } catch (err) {
       toast.error(err.response?.data?.message || 'Sync failed')
     } finally {

@@ -101,17 +101,20 @@ const sync = async (req, res, next) => {
 
     await invalidateUserCache(req.user.id);
 
+    const scopeLabel = result.source === "full" ? "full history" : "recent activity";
     await createNotification(
       req.user.id,
       "sync",
       "LeetCode Sync Complete",
-      `Synced ${result.syncedCount} problems from LeetCode.`
+      `Synced ${result.syncedCount} new problems (${scopeLabel}). LeetCode shows ${result.totalSolvedOnLeetcode} solved in total.`
     );
 
     res.json({
       message: "LeetCode data synced",
       profile: result.profile,
       syncedCount: result.syncedCount,
+      source: result.source,
+      totalSolvedOnLeetcode: result.totalSolvedOnLeetcode,
     });
   } catch (error) {
     next(error);
