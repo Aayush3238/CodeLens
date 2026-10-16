@@ -207,7 +207,11 @@ export default function Profile() {
                 </div>
               ))}
               {(!weakTopics?.topics || weakTopics.topics.length === 0) && (
-                <p className="text-dark-500 text-gray-400 text-sm">Connect your LeetCode account to see topic strengths.</p>
+                <p className="text-dark-500 text-gray-400 text-sm">
+                  {lcStatus?.connected
+                    ? 'Not enough synced data yet. Go to Settings → Connections → Sync Data to pull your submissions.'
+                    : 'Connect your LeetCode account to see topic strengths.'}
+                </p>
               )}
             </div>
           </div>

@@ -1,5 +1,6 @@
 const prisma = require("../config/db");
 const { getCache, setCache } = require("../utils/cache");
+const realLeetcode = require("../services/leetcode/realLeetcode");
 
 const DASHBOARD_CACHE_TTL = 5 * 60;
 
@@ -39,7 +40,22 @@ const getDashboard = async (req, res, next) => {
     const easy = difficultyCounts.find((d) => d.difficulty === "Easy")?.count || 0;
     const medium = difficultyCounts.find((d) => d.difficulty === "Medium")?.count || 0;
     const hard = difficultyCounts.find((d) => d.difficulty === "Hard")?.count || 0;
-    const totalSolved = easy + medium + hard;
+    let totalSolved = easy + medium + hard;
+
+    let liveStats = null;
+    if (totalSolved === 0 && req.user.leetcodeUsername) {
+      try {
+        const profile = await realLeetcode.getProfile(req.user.leetcodeUsername);
+        if (profile && profile.totalSolved > 0) {
+          liveStats = {
+            totalSolved: profile.totalSolved,
+            easy: profile.easy,
+            medium: profile.medium,
+            hard: profile.hard,
+          };
+        }
+      } catch {}
+    }
 
     const dailyActivity = await prisma.$queryRaw`
       SELECT DATE(submission_time) as date, COUNT(*)::int as count
@@ -50,15 +66,21 @@ const getDashboard = async (req, res, next) => {
       ORDER BY date
     `;
 
+    const finalEasy = liveStats ? liveStats.easy : easy;
+    const finalMedium = liveStats ? liveStats.medium : medium;
+    const finalHard = liveStats ? liveStats.hard : hard;
+    const finalTotal = liveStats ? liveStats.totalSolved : totalSolved;
+
     const result = {
       user: req.user,
       stats: {
-        totalSolved,
-        easy,
-        medium,
-        hard,
+        totalSolved: finalTotal,
+        easy: finalEasy,
+        medium: finalMedium,
+        hard: finalHard,
         totalSubmissions,
-        acceptanceRate: totalSubmissions > 0 ? Math.round((totalSolved / totalSubmissions) * 100) : 0,
+        acceptanceRate: totalSubmissions > 0 ? Math.round((finalTotal / totalSubmissions) * 100) : 0,
+        source: liveStats ? "leetcode" : "local",
       },
       topicDistribution: topicCounts,
       dailyActivity: dailyActivity.map((d) => ({
