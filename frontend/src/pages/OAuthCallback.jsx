@@ -20,7 +20,7 @@ export default function OAuthCallback() {
 
     const exchangeTokens = async () => {
       try {
-        const { data } = await api.get('/api/auth/oauth-exchange')
+        const { data } = await api.get('/auth/oauth-exchange')
         if (data.token) {
           setAuth(null, data.token, data.refreshToken)
           window.location.href = '/dashboard'

@@ -328,13 +328,13 @@ function ApiKeysTab() {
   const [hasKey, setHasKey] = useState(false)
 
   useEffect(() => {
-    api.get('/api/auth/api-key').then(({ data }) => setHasKey(data.hasKey)).catch(() => {})
+    api.get('/auth/api-key').then(({ data }) => setHasKey(data.hasKey)).catch(() => {})
   }, [])
 
   const onSaveApiKey = async () => {
     if (!apiKey) return
     try {
-      await api.put('/api/auth/api-key', { apiKey })
+      await api.put('/auth/api-key', { apiKey })
       setHasKey(true)
       setApiKey('')
       toast.success('API key saved securely')
@@ -345,7 +345,7 @@ function ApiKeysTab() {
 
   const onDeleteApiKey = async () => {
     try {
-      await api.delete('/api/auth/api-key')
+      await api.delete('/auth/api-key')
       setHasKey(false)
       toast.success('API key deleted')
     } catch {

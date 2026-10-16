@@ -2,7 +2,8 @@ import axios from 'axios'
 import { useAuthStore } from '../stores/authStore'
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: `${import.meta.env.VITE_API_URL || ''}/api`,
+  withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -10,7 +11,7 @@ let csrfToken = null
 
 export const fetchCsrfToken = async () => {
   try {
-    const res = await axios.get('/api/csrf-token', { withCredentials: true })
+    const res = await axios.get(`${import.meta.env.VITE_API_URL || ''}/api/csrf-token`, { withCredentials: true })
     csrfToken = res.data.csrfToken
     return csrfToken
   } catch {

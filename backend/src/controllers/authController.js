@@ -191,17 +191,18 @@ const googleCallback = async (req, res) => {
     const token = generateToken(req.user.id);
     const refreshToken = await generateRefreshToken(req.user.id);
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const isProd = process.env.NODE_ENV === "production";
 
     res.cookie("oauth_token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
       maxAge: 15 * 60 * 1000,
     });
     res.cookie("oauth_refresh", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
@@ -217,17 +218,18 @@ const githubCallback = async (req, res) => {
     const token = generateToken(req.user.id);
     const refreshToken = await generateRefreshToken(req.user.id);
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const isProd = process.env.NODE_ENV === "production";
 
     res.cookie("oauth_token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
       maxAge: 15 * 60 * 1000,
     });
     res.cookie("oauth_refresh", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
@@ -292,8 +294,8 @@ const oauthExchange = async (req, res) => {
       return res.status(401).json({ message: "No OAuth session found" });
     }
 
-    res.clearCookie("oauth_token");
-    res.clearCookie("oauth_refresh");
+    res.clearCookie("oauth_token", { secure: process.env.NODE_ENV === "production", sameSite: process.env.NODE_ENV === "production" ? "none" : "lax" });
+    res.clearCookie("oauth_refresh", { secure: process.env.NODE_ENV === "production", sameSite: process.env.NODE_ENV === "production" ? "none" : "lax" });
 
     res.json({ token, refreshToken });
   } catch (error) {
