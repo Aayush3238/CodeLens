@@ -24,6 +24,8 @@ model User {
   lockedUntil     DateTime?
   emailVerified    Boolean  @default(false)
   emailVerifiedAt  DateTime?
+  onboardingCompleted Boolean @default(false)
+  preferredFocus   String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 

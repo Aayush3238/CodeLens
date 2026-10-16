@@ -75,6 +75,7 @@ export const authAPI = {
     return api.post('/auth/avatar', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
   },
   deleteAccount: () => api.delete('/auth/account'),
+  completeOnboarding: (focus) => api.post('/auth/onboarding', { focus }),
 }
 
 export const dashboardAPI = {

@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
+import { Link } from 'react-router-dom'
 import { dashboardAPI } from '../services/api'
+import { useAuthStore } from '../stores/authStore'
 import { StatCard, Skeleton, PageHeader } from '../components/ui'
-import { Code2, CheckCircle, Clock, Flame, TrendingUp, Target } from 'lucide-react'
+import { Code2, CheckCircle, Clock, Flame, TrendingUp, Target, GitBranch, ArrowRight } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid, AreaChart, Area } from 'recharts'
 
 const COLORS = ['#22c55e', '#eab308', '#ef4444', '#6366f1', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#84cc16']
@@ -23,6 +25,7 @@ function DashboardSkeleton() {
 }
 
 export default function Dashboard() {
+  const user = useAuthStore((s) => s.user)
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => dashboardAPI.getDashboard().then((r) => r.data),
@@ -45,6 +48,34 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <PageHeader title={`Welcome, ${data?.user?.name || 'User'}`} description="Here's your coding progress overview" />
+
+      {(!user?.leetcodeUsername || !user?.githubId) && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card p-5">
+          <p className="text-sm font-medium mb-3">Finish setting up your workspace</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {!user?.leetcodeUsername && (
+              <Link to="/settings" className="flex items-center gap-3 p-3 rounded-xl border border-dark-700 border-gray-200 hover:border-primary-500 transition-all group">
+                <div className="p-2 rounded-lg bg-primary-600/10 text-primary-400"><Code2 size={18} /></div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Connect LeetCode</p>
+                  <p className="text-dark-400 text-xs">Track submissions & get AI analysis</p>
+                </div>
+                <ArrowRight size={16} className="text-dark-500 group-hover:text-primary-400" />
+              </Link>
+            )}
+            {!user?.githubId && (
+              <a href={`${import.meta.env.VITE_API_URL || ''}/api/auth/github`} className="flex items-center gap-3 p-3 rounded-xl border border-dark-700 border-gray-200 hover:border-primary-500 transition-all group">
+                <div className="p-2 rounded-lg bg-primary-600/10 text-primary-400"><GitBranch size={18} /></div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Connect GitHub</p>
+                  <p className="text-dark-400 text-xs">Analyze your repositories</p>
+                </div>
+                <ArrowRight size={16} className="text-dark-500 group-hover:text-primary-400" />
+              </a>
+            )}
+          </div>
+        </motion.div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Problems Solved" value={stats?.totalSolved || 0} icon={CheckCircle} color="text-green-400" trend="+12 this week" />

@@ -23,7 +23,15 @@ export default function OAuthCallback() {
         const { data } = await api.get('/auth/oauth-exchange')
         if (data.token) {
           setAuth(null, data.token, data.refreshToken)
-          window.location.href = '/dashboard'
+          try {
+            const { data: profileData } = await api.get('/auth/profile', {
+              headers: { Authorization: `Bearer ${data.token}` },
+            })
+            setAuth(profileData.user, data.token, data.refreshToken)
+            window.location.href = profileData.user?.onboardingCompleted === false ? '/onboarding' : '/dashboard'
+          } catch {
+            window.location.href = '/dashboard'
+          }
         } else {
           toast.error('No token received')
           navigate('/login')

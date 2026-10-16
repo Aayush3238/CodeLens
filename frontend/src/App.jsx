@@ -25,6 +25,7 @@ const RevisionPlan = lazy(() => import('./pages/RevisionPlan'))
 const GitHubRepos = lazy(() => import('./pages/GitHubRepos'))
 const Settings = lazy(() => import('./pages/Settings'))
 const CodeGraph = lazy(() => import('./pages/CodeGraph'))
+const Onboarding = lazy(() => import('./pages/Onboarding'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 
 const queryClient = new QueryClient({
@@ -36,6 +37,20 @@ const queryClient = new QueryClient({
 function ProtectedRoute({ children }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   return isAuthenticated ? children : <Navigate to="/login" />
+}
+
+function OnboardingRoute({ children }) {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const user = useAuthStore((s) => s.user)
+  if (!isAuthenticated) return <Navigate to="/login" />
+  if (user?.onboardingCompleted) return <Navigate to="/dashboard" />
+  return children
+}
+
+function RequireOnboarding({ children }) {
+  const user = useAuthStore((s) => s.user)
+  if (user && !user.onboardingCompleted) return <Navigate to="/onboarding" replace />
+  return children
 }
 
 function PublicRoute({ children }) {
@@ -72,7 +87,8 @@ function AppRoutes() {
         <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
         <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
         <Route path="/oauth/callback" element={<OAuthCallback />} />
-        <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+        <Route path="/onboarding" element={<OnboardingRoute><Onboarding /></OnboardingRoute>} />
+        <Route path="/" element={<ProtectedRoute><RequireOnboarding><Layout /></RequireOnboarding></ProtectedRoute>}>
           <Route index element={<Navigate to="/dashboard" />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="profile" element={<Profile />} />

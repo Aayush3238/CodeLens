@@ -20,6 +20,8 @@ const userSelect = {
   leetcodeUsername: true,
   googleId: true,
   githubId: true,
+  onboardingCompleted: true,
+  preferredFocus: true,
   createdAt: true,
 };
 
@@ -307,6 +309,27 @@ const getProfile = async (req, res) => {
   res.json({ user: req.user });
 };
 
+const completeOnboarding = async (req, res, next) => {
+  try {
+    const { focus } = req.body;
+    const allowed = ["leetcode", "github", "both"];
+    if (focus && !allowed.includes(focus)) {
+      return res.status(400).json({ message: "Invalid focus value" });
+    }
+
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { onboardingCompleted: true, preferredFocus: focus || "both" },
+      select: userSelect,
+    });
+
+    await logAudit(req.user.id, "ONBOARDING_COMPLETED", `Focus: ${focus || "both"}`, req.ip);
+    res.json({ user });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const updateProfile = async (req, res, next) => {
   try {
     const data = updateProfileSchema.parse(req.body);
@@ -489,4 +512,4 @@ const resendVerification = async (req, res, next) => {
   }
 };
 
-module.exports = { signup, login, setPassword, changePassword, googleCallback, githubCallback, oauthExchange, getApiKey, setApiKey, deleteApiKey, getProfile, updateProfile, uploadAvatar, deleteAccount, forgotPassword, resetPassword, verifyEmail, resendVerification };
+module.exports = { signup, login, setPassword, changePassword, googleCallback, githubCallback, oauthExchange, getApiKey, setApiKey, deleteApiKey, getProfile, updateProfile, uploadAvatar, deleteAccount, forgotPassword, resetPassword, verifyEmail, resendVerification, completeOnboarding };

@@ -2,7 +2,7 @@ const express = require("express");
 const passport = require("passport");
 const multer = require("multer");
 const path = require("path");
-const { signup, login, setPassword, changePassword, googleCallback, githubCallback, oauthExchange, getApiKey, setApiKey, deleteApiKey, getProfile, updateProfile, uploadAvatar, deleteAccount, forgotPassword, resetPassword, verifyEmail, resendVerification } = require("../controllers/authController");
+const { signup, login, setPassword, changePassword, googleCallback, githubCallback, oauthExchange, getApiKey, setApiKey, deleteApiKey, getProfile, updateProfile, uploadAvatar, deleteAccount, forgotPassword, resetPassword, verifyEmail, resendVerification, completeOnboarding } = require("../controllers/authController");
 const { authenticate, generateAccessToken, generateRefreshToken, refreshAccessToken, revokeRefreshToken } = require("../middleware/auth");
 const { authLimiter, resetLimiter } = require("../middleware/rateLimiter");
 
@@ -321,6 +321,7 @@ router.get("/oauth-exchange", oauthExchange);
  *         description: User profile
  */
 router.get("/profile", authenticate, getProfile);
+router.post("/onboarding", authenticate, completeOnboarding);
 
 /**
  * @swagger

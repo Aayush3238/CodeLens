@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate, useSearchParams, useLocation } from 'reac
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '../../stores/authStore'
 import { notificationsAPI } from '../../services/api'
-import { SIDEBAR_LINKS } from '../../constants'
+import { SIDEBAR_GROUPS } from '../../constants'
 import {
   LayoutDashboard, User, Code2, FileCode, Bot, Target,
   Calendar, Settings, LogOut, Menu, X, ChevronLeft, Search, Bell, GitBranch, Network,
@@ -102,21 +102,32 @@ export default function Layout() {
         )}
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto scrollbar-thin">
-        {SIDEBAR_LINKS.map(({ path, label, icon }) => {
-          const Icon = iconMap[icon]
-          return (
-            <NavLink
-              key={path}
-              to={path}
-              onClick={() => setMobileOpen(false)}
-              className={({ isActive }) => isActive ? 'sidebar-link-active' : 'sidebar-link'}
-            >
-              {Icon && <Icon size={20} />}
-              {!collapsed && <span>{label}</span>}
-            </NavLink>
-          )
-        })}
+      <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto scrollbar-thin">
+        {SIDEBAR_GROUPS.map((group) => (
+          <div key={group.label}>
+            {!collapsed && (
+              <p className="px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-dark-500 text-gray-400">
+                {group.label}
+              </p>
+            )}
+            <div className="space-y-1">
+              {group.links.map(({ path, label, icon }) => {
+                const Icon = iconMap[icon]
+                return (
+                  <NavLink
+                    key={path}
+                    to={path}
+                    onClick={() => setMobileOpen(false)}
+                    className={({ isActive }) => isActive ? 'sidebar-link-active' : 'sidebar-link'}
+                  >
+                    {Icon && <Icon size={20} />}
+                    {!collapsed && <span>{label}</span>}
+                  </NavLink>
+                )
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       <div className="px-3 py-4 border-t border-dark-800 dark:border-dark-800 border-gray-200">

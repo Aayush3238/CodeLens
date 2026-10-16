@@ -18,7 +18,7 @@ export default function Login() {
       const res = await authAPI.login(data)
       setAuth(res.data.user, res.data.token, res.data.refreshToken)
       toast.success('Welcome back!')
-      navigate('/dashboard')
+      navigate(res.data.user?.onboardingCompleted === false ? '/onboarding' : '/dashboard')
     } catch (err) {
       toast.error(err.response?.data?.message || 'Login failed')
     }
